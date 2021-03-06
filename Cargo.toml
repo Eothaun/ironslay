@@ -1,0 +1,8 @@
+[package]
+name = "ironslay"
+version = "0.1.0"
+authors = ["FireFlyForLife <maiko.s.99@gmail.com>, SimonRenger <simon.renger@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+bevy = "0.4"
