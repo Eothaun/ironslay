@@ -1,0 +1,12 @@
+[package]
+name = "hex_shader"
+version = "0.1.0"
+authors = ["FireFlyForLife <maiko.s.99@gmail.com>", "SimonRenger <simon.renger@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+spirv-std-macros = { git = "https://github.com/EmbarkStudios/rust-gpu.git", tag = "v0.3.0" }
+spirv-std = { git = "https://github.com/EmbarkStudios/rust-gpu.git", tag = "v0.3.0" }
