@@ -7,11 +7,13 @@ use bevy::render::{
     renderer::RenderResources,
     shader::{ShaderStage, ShaderStages, ShaderSource},
 };
+use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
 
 
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
+        .add_plugin(FlyCameraPlugin)
         .add_asset::<MyMaterial>()
         .add_startup_system(setup.system())
         .run();
@@ -27,6 +29,10 @@ struct MyMaterial {
 const VERTEX_SHADER: &str = r#"
 #version 450
 layout(location = 0) in vec3 Vertex_Position;
+layout(location = 1) in vec2 Vertex_Uv;
+
+layout(location = 0) out vec2 v_Uv;
+
 layout(set = 0, binding = 0) uniform Camera {
     mat4 ViewProj;
 };
@@ -34,6 +40,7 @@ layout(set = 1, binding = 0) uniform Transform {
     mat4 Model;
 };
 void main() {
+    v_Uv = Vertex_Uv;
     gl_Position = ViewProj * Model * vec4(Vertex_Position, 1.0);
 }
 "#;
@@ -122,7 +129,7 @@ fn setup(
             mesh: quad_handle.clone(),
             material: material_handle,
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 1.5),
+                translation: Vec3::new(-8.0, 0.0, 1.5),
                 rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
                 ..Default::default()
             },
@@ -137,7 +144,7 @@ fn setup(
             mesh: quad_handle.clone(),
             material: red_material_handle,
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 0.0),
+                translation: Vec3::new(-8.0, 0.0, 0.0),
                 rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
                 ..Default::default()
             },
@@ -152,7 +159,7 @@ fn setup(
             mesh: quad_handle,
             material: blue_material_handle,
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, -1.5),
+                translation: Vec3::new(-8.0, 0.0, -1.5),
                 rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
                 ..Default::default()
             },
@@ -162,20 +169,29 @@ fn setup(
             },
             ..Default::default()
         })
-        // cube with custom shader
+        // plane with custom shader
         .spawn(MeshBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
+            mesh: meshes.add(Mesh::from(shape::Plane { size: 2.0 })),
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 pipeline_handle,
             )]),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            transform: Transform::from_translation(Vec3::new(5.0, -1.0, 0.0)),
             ..Default::default()
         })
         .with(my_material)
+        // custom mesh
+        .spawn_scene(asset_server.load("models/HexagonCap.gltf"))
+        // light
+        .spawn(LightBundle {
+                    transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
+                    ..Default::default()
+                })
         // camera
         .spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(3.0, 5.0, 8.0))
+            transform: Transform::from_translation(Vec3::new(0.0, 1.0, 8.0))
                 .looking_at(Vec3::default(), Vec3::unit_y()),
             ..Default::default()
-        });
+        })
+        .with(FlyCamera::default())
+        ;
 }

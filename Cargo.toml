@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 bevy = "0.4"
+bevy_fly_camera = "0.6.0"
 
 [build-dependencies]
 spirv-builder = { git = "https://github.com/EmbarkStudios/rust-gpu.git", tag = "v0.3.0" }
