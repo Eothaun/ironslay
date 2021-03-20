@@ -7,13 +7,14 @@ use bevy::render::{
     renderer::RenderResources,
     shader::{ShaderStage, ShaderStages, ShaderSource},
 };
-use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
+mod orbit_camera;
+use orbit_camera::*;
 
 
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
-        .add_plugin(FlyCameraPlugin)
+        .add_plugin(OrbitCameraPlugin)
         .add_asset::<MyMaterial>()
         .add_startup_system(setup.system())
         .run();
@@ -203,6 +204,5 @@ fn setup(
                 .looking_at(Vec3::default(), Vec3::unit_y()),
             ..Default::default()
         })
-        .with(FlyCamera::default())
-        ;
+        .with(OrbitCamera::default());
 }
