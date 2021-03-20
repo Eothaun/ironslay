@@ -89,6 +89,9 @@ fn setup(
     let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
     let aspect = 0.25;
 
+    // Load hexagon cap model
+    let hexagon_cap = asset_server.load("models/HexagonCap.gltf#Mesh0/Primitive0");
+
     // create a new quad mesh. this is what we will apply the texture to
     let quad_width = 8.0;
     let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(
@@ -173,14 +176,22 @@ fn setup(
         .spawn(MeshBundle {
             mesh: meshes.add(Mesh::from(shape::Plane { size: 2.0 })),
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
-                pipeline_handle,
+                pipeline_handle.clone(),
             )]),
             transform: Transform::from_translation(Vec3::new(5.0, -1.0, 0.0)),
             ..Default::default()
         })
-        .with(my_material)
+        .with(my_material.clone())
         // custom mesh
-        .spawn_scene(asset_server.load("models/HexagonCap.gltf"))
+        .spawn(MeshBundle {
+            mesh: hexagon_cap,
+            render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
+                pipeline_handle,
+            )]),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            ..Default::default()
+        })
+        .with(my_material)
         // light
         .spawn(LightBundle {
                     transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
