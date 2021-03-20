@@ -222,7 +222,7 @@ fn setup(
             ..Default::default()
         })
         .with(OrbitCamera::default())
-        .with(SkyboxCamera);
+        .with(SkyboxCamera)
         .with(OrbitCamera::default())
         .with(RayCastSource::<HexRaycastLayer>::new(
             RayCastMethod::CameraCursor(UpdateOn::EveryFrame(Vec2::zero()), EventReader::default())
