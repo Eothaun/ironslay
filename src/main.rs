@@ -7,6 +7,8 @@ use bevy::render::{
     renderer::RenderResources,
     shader::{ShaderStage, ShaderStages, ShaderSource},
 };
+use bevy_mod_raycast::*;
+
 mod orbit_camera;
 use orbit_camera::*;
 
@@ -15,6 +17,8 @@ fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .add_plugin(OrbitCameraPlugin)
+        .add_system_to_stage(stage::POST_UPDATE, update_raycast::<HexRaycastLayer>.system())
+        .add_system_to_stage(stage::POST_UPDATE, update_debug_cursor::<HexRaycastLayer>.system())
         .add_asset::<MyMaterial>()
         .add_startup_system(setup.system())
         .run();
@@ -26,6 +30,8 @@ fn main() {
 struct MyMaterial {
     //pub color: Color,
 }
+
+struct HexRaycastLayer;
 
 const VERTEX_SHADER: &str = r#"
 #version 450
@@ -183,6 +189,7 @@ fn setup(
             ..Default::default()
         })
         .with(my_material.clone())
+        .with(RayCastMesh::<HexRaycastLayer>::default())
         // custom mesh
         .spawn(MeshBundle {
             mesh: hexagon_cap,
@@ -193,6 +200,7 @@ fn setup(
             ..Default::default()
         })
         .with(my_material)
+        .with(RayCastMesh::<HexRaycastLayer>::default())
         // light
         .spawn(LightBundle {
                     transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
@@ -204,5 +212,9 @@ fn setup(
                 .looking_at(Vec3::default(), Vec3::unit_y()),
             ..Default::default()
         })
-        .with(OrbitCamera::default());
+        .with(OrbitCamera::default())
+        .with(RayCastSource::<HexRaycastLayer>::new(
+            RayCastMethod::CameraCursor(UpdateOn::EveryFrame(Vec2::zero()), EventReader::default())
+        ))
+        ;
 }
