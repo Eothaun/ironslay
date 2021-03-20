@@ -122,6 +122,22 @@ impl Plugin for OrbitCameraPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.init_resource::<CameraState>()
             .add_system(Self::mouse_motion_system.system())
-            .add_system(Self::zoom_system.system());
+            .add_system(Self::zoom_system.system())
+            .add_startup_system_to_stage(bevy::app::startup_stage::POST_STARTUP,self::initial_camera_position.system());
     }
+
+}
+
+fn initial_camera_position(
+    state: ResMut<CameraState>,
+    mut query: Query<(&mut OrbitCamera, &mut Transform, &mut Camera)>,){
+        for (mut camera, mut transform, _) in query.iter_mut() {
+        camera.y = camera.y.max(state.min).min(state.max);
+        let rot = Quat::from_axis_angle(Vec3::unit_y(), camera.x)
+            * Quat::from_axis_angle(-Vec3::unit_x(), camera.y);
+        transform.translation =
+            (rot * Vec3::new(0.0, 1.0, 0.0)) * camera.distance + camera.center;
+        transform.look_at(camera.center, Vec3::unit_y());
+        }
+
 }

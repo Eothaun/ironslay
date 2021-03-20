@@ -1,3 +1,8 @@
+// Internal
+mod orbit_camera;
+use orbit_camera::*;
+
+// External
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use bevy::render::{
@@ -7,11 +12,13 @@ use bevy::render::{
     renderer::RenderResources,
     shader::{ShaderStage, ShaderStages, ShaderSource},
 };
-mod orbit_camera;
-use orbit_camera::*;
-
+use std::env;
 
 fn main() {
+    
+    let path = env::current_dir().unwrap();
+    println!("The current working directory is {}", path.display());
+
     App::build()
         .add_plugins(DefaultPlugins)
         .add_plugin(OrbitCameraPlugin)
