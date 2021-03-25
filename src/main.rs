@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use bevy::render::{
 	mesh::shape,
+    mesh::VertexAttributeValues,
 	pipeline::{PipelineDescriptor, RenderPipeline},
     render_graph::{base, AssetRenderResourcesNode, RenderGraph},
     renderer::RenderResources,
@@ -27,15 +28,25 @@ fn main() {
         .add_system_to_stage(stage::POST_UPDATE, update_raycast::<HexRaycastLayer>.system())
         .add_system_to_stage(stage::POST_UPDATE, update_debug_cursor::<HexRaycastLayer>.system())
         .add_asset::<MyMaterial>()
+        .add_system(update_hex_selection.system())
         .add_startup_system(setup.system())
         .run();
 }
 
 // Custom material for our custom shader
-#[derive(RenderResources, Default, TypeUuid)]
+#[derive(RenderResources, TypeUuid)]
 #[uuid = "1e08866c-0b8a-437e-8bce-37733b25127e"]
 struct MyMaterial {
-    //pub color: Color,
+    pub color: Color,
+    pub highlighted_id: Vec2,
+}
+impl Default for MyMaterial {
+    fn default() -> Self {
+        Self { 
+            color: Color::WHITE, 
+            highlighted_id: Vec2::new(5.0, 5.0) 
+        }
+    }
 }
 
 struct HexRaycastLayer;
@@ -71,6 +82,89 @@ void main() {
 }
 "#;
 
+fn vec3_all_eq(a: Vec3, b: Vec3, epsilon: f32) -> bool {
+    (a.x - b.x).abs() <= epsilon &&
+    (a.y - b.y).abs() <= epsilon &&
+    (a.z - b.z).abs() <= epsilon
+}
+
+// Temp fix to obtain vertex indices. In an ideal world, this would be supplied by bevy_mod_raycast's Intersection directly.
+fn calculate_vertex_indices_from_intersection(intersection: &Intersection, mesh: &Mesh, mesh_to_world: Mat4) -> [u32; 3] {
+    let positions = match mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+        Some(VertexAttributeValues::Float3(positions)) => positions,
+        _ => panic!("Mesh is expected to have float3 positions!"),
+    };
+
+    let tri = intersection.world_triangle();
+
+    let tri_idx_v0 = positions.iter().position(|pos| { 
+        let world_pos = mesh_to_world.transform_point3((*pos).into());
+        vec3_all_eq(world_pos, tri.v0, 0.01)
+    }).unwrap();
+    let tri_idx_v1 = positions.iter().position(|pos| { 
+        let world_pos = mesh_to_world.transform_point3((*pos).into());
+        vec3_all_eq(world_pos, tri.v1, 0.01)
+    }).unwrap();
+    let tri_idx_v2 = positions.iter().position(|pos| { 
+        let world_pos = mesh_to_world.transform_point3((*pos).into());
+        vec3_all_eq(world_pos, tri.v2, 0.01)
+    }).unwrap();
+
+    [tri_idx_v0 as u32, tri_idx_v1 as u32, tri_idx_v2 as u32]
+}
+
+fn update_hex_selection(
+    raycast_source_query: Query<&RayCastSource<HexRaycastLayer>>, 
+    raycast_mesh_query: Query<(&RayCastMesh<HexRaycastLayer>, &Handle<MyMaterial>, &Handle<Mesh>, &GlobalTransform)>,
+    meshes: Res<Assets<Mesh>>,
+    mut my_materials: ResMut<Assets<MyMaterial>>,
+) {
+    for raycast_source in raycast_source_query.iter()
+    {
+        if let Some((entity, intersection)) = raycast_source.intersect_top() {
+            let tri = intersection.world_triangle();
+            let pos = intersection.position();
+
+            // From https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
+            let v0: Vec3 = tri.v1 - tri.v0;
+            let v1: Vec3 = tri.v2 - tri.v0;
+            let v2: Vec3 = pos - tri.v0;
+            let d00 = v0.dot(v0);
+            let d01 = v0.dot(v1);
+            let d11 = v1.dot(v1);
+            let d20 = v2.dot(v0);
+            let d21 = v2.dot(v1);
+            let denom = d00 * d11 - d01 * d01;
+
+            let v = (d11 * d20 - d01 * d21) / denom;
+            let w = (d00 * d21 - d01 * d20) / denom;
+            let u = 1.0 - v - w;
+
+            // Sanity test
+            let reconstructed_pos: Vec3 = tri.v0 * u + tri.v1 * v + tri.v2 * w;
+            assert!(vec3_all_eq(reconstructed_pos, pos, 0.01));
+
+            if let Ok((_raycast_mesh, material_handle, mesh_handle, transform)) = raycast_mesh_query.get(entity) {
+                if let Some(mesh) = meshes.get(mesh_handle.clone()) {
+                    let triangle_indices = calculate_vertex_indices_from_intersection(&intersection, mesh, transform.compute_matrix());
+
+                    if let Some(VertexAttributeValues::Float2(uvs)) = mesh.attribute(Mesh::ATTRIBUTE_UV_0) {
+                        let uv_v0 = Vec2::from(uvs[triangle_indices[0] as usize]);
+                        let uv_v1 = Vec2::from(uvs[triangle_indices[1] as usize]);
+                        let uv_v2 = Vec2::from(uvs[triangle_indices[2] as usize]);
+
+                        let interpolated_uv = uv_v0 * u + uv_v1 * v + uv_v2 * w;
+
+                        if let Some(material) = my_materials.get_mut(material_handle) {
+                            material.highlighted_id = interpolated_uv;
+                        }
+                    }
+               }
+            }
+        }
+    }
+}
+
 fn setup(
     commands: &mut Commands,
     asset_server: Res<AssetServer>,
@@ -82,7 +176,7 @@ fn setup(
     mut render_graph: ResMut<RenderGraph>,
 ) {
     // Create a new shader pipeline
-    let hex_shader_spriv = include_bytes!(env!("hex_shader.spv"));
+    let hex_shader_spriv = include_bytes!(env!("hex_shader.spv")); 
     let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, VERTEX_SHADER)),
         fragment: Some(shaders.add(Shader::new(ShaderStage::Fragment, ShaderSource::spirv_from_bytes(hex_shader_spriv)))),
@@ -135,9 +229,7 @@ fn setup(
     });
 
     // Create a new custom material
-    let my_material = my_materials.add(MyMaterial {
-        // color: Color::rgb(0.0, 0.8, 0.0),
-    });
+    let my_material = my_materials.add(MyMaterial{ color: Color::SEA_GREEN, highlighted_id: Vec2::new(5.0, 5.0)});
 
     // add entities to the world
     commands
