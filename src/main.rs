@@ -13,6 +13,7 @@ use bevy::render::{
     renderer::RenderResources,
     shader::{ShaderStage, ShaderStages, ShaderSource},
 };
+use bevy_skybox::{SkyboxPlugin, SkyboxCamera};
 use bevy_mod_raycast::*;
 
 use std::env;
@@ -30,6 +31,7 @@ fn main() {
         .add_asset::<MyMaterial>()
         .add_system(update_hex_selection.system())
         .add_startup_system(setup.system())
+        .add_plugin(SkyboxPlugin::from_image_file("sky1.png"))
         .run();
 }
 
@@ -311,6 +313,8 @@ fn setup(
                 .looking_at(Vec3::default(), Vec3::unit_y()),
             ..Default::default()
         })
+        .with(OrbitCamera::default())
+        .with(SkyboxCamera)
         .with(OrbitCamera::default())
         .with(RayCastSource::<HexRaycastLayer>::new(
             RayCastMethod::CameraCursor(UpdateOn::EveryFrame(Vec2::zero()), EventReader::default())
