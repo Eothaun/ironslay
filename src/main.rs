@@ -1,5 +1,6 @@
 // Internal
 mod orbit_camera;
+mod skybox;
 use orbit_camera::*;
 
 // External
@@ -13,7 +14,6 @@ use bevy::render::{
     renderer::RenderResources,
     shader::{ShaderStage, ShaderStages, ShaderSource},
 };
-use bevy_skybox::{SkyboxPlugin, SkyboxCamera};
 use bevy_mod_raycast::*;
 
 use std::env;
@@ -31,7 +31,9 @@ fn main() {
         .add_asset::<MyMaterial>()
         .add_system(update_hex_selection.system())
         .add_startup_system(setup.system())
-        .add_plugin(SkyboxPlugin::from_image_file("sky1.png"))
+        .add_startup_system(skybox::setup_skybox.system())
+        .add_system(skybox::create_renderable_skybox.system())
+        // .add_plugin(SkyboxPlugin::from_image_file("sky1.png"))
         .run();
 }
 
@@ -40,13 +42,13 @@ fn main() {
 #[uuid = "1e08866c-0b8a-437e-8bce-37733b25127e"]
 struct MyMaterial {
     pub color: Color,
-    pub highlighted_id: Vec2,
+    pub highlighted_id: Vec2
 }
 impl Default for MyMaterial {
     fn default() -> Self {
         Self { 
             color: Color::WHITE, 
-            highlighted_id: Vec2::new(5.0, 5.0) 
+            highlighted_id: Vec2::new(5.0, 5.0)
         }
     }
 }
@@ -146,6 +148,7 @@ fn update_hex_selection(
             let reconstructed_pos: Vec3 = tri.v0 * u + tri.v1 * v + tri.v2 * w;
             assert!(vec3_all_eq(reconstructed_pos, pos, 0.01));
 
+            // Calculate uv and update the material with it
             if let Ok((_raycast_mesh, material_handle, mesh_handle, transform)) = raycast_mesh_query.get(entity) {
                 if let Some(mesh) = meshes.get(mesh_handle.clone()) {
                     let triangle_indices = calculate_vertex_indices_from_intersection(&intersection, mesh, transform.compute_matrix());
@@ -197,6 +200,7 @@ fn setup(
 
     // load a texture and retrieve its aspect ratio
     let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
+    let background_texture_handle = asset_server.load("textures/paper_tileable.jpg");
     let aspect = 0.25;
 
     // Load hexagon cap model
@@ -314,10 +318,15 @@ fn setup(
             ..Default::default()
         })
         .with(OrbitCamera::default())
-        .with(SkyboxCamera)
-        .with(OrbitCamera::default())
         .with(RayCastSource::<HexRaycastLayer>::new(
             RayCastMethod::CameraCursor(UpdateOn::EveryFrame(Vec2::zero()), EventReader::default())
         ))
+        .spawn((skybox::Skybox6Sided::new(asset_server, 
+            "textures/bkg1_left.png", 
+            "textures/bkg1_right.png", 
+            "textures/bkg1_top.png", 
+            "textures/bkg1_bot.png", 
+            "textures/bkg1_front.png", 
+            "textures/bkg1_back.png"),))
         ;
 }
