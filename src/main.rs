@@ -16,17 +16,7 @@ use bevy::render::{
 use bevy_mod_raycast::*;
 use bevy_skybox::{SkyboxCamera, SkyboxPlugin};
 
-use bevy_inspector_egui::Inspectable;
-use bevy_inspector_egui::InspectorPlugin;
 use std::env;
-
-#[derive(Inspectable, Default)]
-struct Data {
-    should_render: bool,
-    text: String,
-    #[inspectable(min = 42.0, max = 100.0)]
-    size: f32,
-}
 
 fn main() {
     let path = env::current_dir().unwrap();
@@ -35,7 +25,6 @@ fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .add_plugin(OrbitCameraPlugin)
-        .add_plugin(InspectorPlugin::<Data>::new())
         .add_system_to_stage(
             stage::POST_UPDATE,
             update_raycast::<HexRaycastLayer>.system(),
