@@ -41,12 +41,14 @@ fn main() {
 struct MyMaterial {
     pub color: Color,
     pub highlighted_id: Vec2,
+    pub background_texture: Handle<Texture>,
 }
 impl Default for MyMaterial {
     fn default() -> Self {
         Self { 
             color: Color::WHITE, 
-            highlighted_id: Vec2::new(5.0, 5.0) 
+            highlighted_id: Vec2::new(5.0, 5.0),
+            background_texture: Default::default(),
         }
     }
 }
@@ -146,6 +148,7 @@ fn update_hex_selection(
             let reconstructed_pos: Vec3 = tri.v0 * u + tri.v1 * v + tri.v2 * w;
             assert!(vec3_all_eq(reconstructed_pos, pos, 0.01));
 
+            // Calculate uv and update the material with it
             if let Ok((_raycast_mesh, material_handle, mesh_handle, transform)) = raycast_mesh_query.get(entity) {
                 if let Some(mesh) = meshes.get(mesh_handle.clone()) {
                     let triangle_indices = calculate_vertex_indices_from_intersection(&intersection, mesh, transform.compute_matrix());
@@ -197,6 +200,7 @@ fn setup(
 
     // load a texture and retrieve its aspect ratio
     let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
+    let background_handle = asset_server.load("textures/paper_tileable.jpg");
     let aspect = 0.25;
 
     // Load hexagon cap model
@@ -231,7 +235,11 @@ fn setup(
     });
 
     // Create a new custom material
-    let my_material = my_materials.add(MyMaterial{ color: Color::SEA_GREEN, highlighted_id: Vec2::new(5.0, 5.0)});
+    let my_material = my_materials.add(MyMaterial{ 
+        color: Color::SEA_GREEN, 
+        highlighted_id: Vec2::new(5.0, 5.0), 
+        background_texture: background_handle,   
+    });
 
     // add entities to the world
     commands

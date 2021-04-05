@@ -17,6 +17,7 @@ pub extern crate spirv_std_macros;
 use spirv_std::glam::{ Vec2, Vec3, Vec4, vec2, vec3, vec4 };
 use spirv_std::storage_class::{ Input, Output, Uniform };
 use spirv_std::num_traits::Float;
+use spirv_std::{ Sampler, Image2d };
 
 
 #[spirv(block)]
@@ -87,6 +88,8 @@ pub fn main(
     
     #[spirv(descriptor_set = 2, binding = 0)] color_uniform: Uniform<MyMaterial_color>,
     #[spirv(descriptor_set = 2, binding = 1)] highlight_uniform: Uniform<MyMaterial_highlighted_id>,
+    #[spirv(descriptor_set = 2, binding = 2)] MyMaterial_background_texture: Uniform<Image2d>,
+    #[spirv(descriptor_set = 2, binding = 3)] MyMaterial_background_texture_sampler: Uniform<Sampler>,
 
     mut colour_output: Output<Vec4>
 ) {
@@ -107,5 +110,5 @@ pub fn main(
     let id = uv - gv;
     col *= Vec3::splat(smoothstep(0.0, 0.1, hex_dist));
 
-    *colour_output = col.extend(1.0) * color_uniform.color;
+    *colour_output = MyMaterial_background_texture.sample(*MyMaterial_background_texture_sampler, *uv_input) * col.extend(1.0) * color_uniform.color;
 }
