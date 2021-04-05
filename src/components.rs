@@ -1,31 +1,45 @@
 use glam::IVec2;
 
 // components
-struct GridPosition {
-    position: IVec2,
+pub struct GridPosition {
+    pub position: IVec2,
 }
 
-struct Team {
-    number: i32,
+pub struct Team {
+    pub number: i32,
 }
 
-struct MovementRange {
-    range: i32,
+pub struct MovementRange {
+    pub range: i32,
 }
 
-struct Power {
-    power: i32,
+pub struct Power {
+    pub power: i32,
 }
 
-struct Grid {
-    width: i32,
-    height: i32,
+pub struct Grid {
+    pub width: i32,
+    pub height: i32,
+}
+
+pub struct Money {
+    pub amount: i32,
 }
 
 // tags
 
-struct SelectedTag;
+pub struct SelectedTag;
 
-struct HoverTag;
+pub struct SelectableTag;
 
-struct MoveableTag;
+pub struct MovedTag;
+
+pub struct HoverTag;
+
+pub struct MoveableTag;
+
+pub struct HexRaycastLayer;
+
+// Aliases
+pub type HexRaycastTarget = bevy_mod_raycast::RayCastMesh<HexRaycastLayer>;
+pub type HexRaycastSource = bevy_mod_raycast::RayCastSource<HexRaycastLayer>;

@@ -1,6 +1,10 @@
 // Internal
+mod components;
+mod gameplay_systems;
+mod gameplay_helpers;
 mod orbit_camera;
 use orbit_camera::*;
+use components::*;
 
 // External
 use bevy::prelude::*;
@@ -58,7 +62,6 @@ impl Default for MyMaterial {
     }
 }
 
-struct HexRaycastLayer;
 
 const VERTEX_SHADER: &str = r#"
 #version 450

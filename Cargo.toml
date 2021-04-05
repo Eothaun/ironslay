@@ -10,6 +10,7 @@ bevy_fly_camera = "0.6.0"
 bevy_mod_raycast = "0.1.0"
 bevy_skybox = "0.3.0"
 bevy-inspector-egui = "0.3.0"
+glam = "0.13.0"
 
 
 # always build spirv-builder with optimizaitons, so that the resulting shader compiler is nice and fast to run. 
