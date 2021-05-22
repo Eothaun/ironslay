@@ -1,4 +1,6 @@
-use glam::IVec2;
+// use bevy::math::IVec2;
+#[derive(Clone, Copy)]
+pub struct IVec2(i32, i32);
 
 // components
 pub struct GridPosition {

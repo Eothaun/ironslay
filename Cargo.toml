@@ -4,13 +4,15 @@ version = "0.1.0"
 authors = ["FireFlyForLife <maiko.s.99@gmail.com>", "SimonRenger <simon.renger@gmail.com>"]
 edition = "2018"
 
+
 [dependencies]
 bevy = "0.4"
 bevy_fly_camera = "0.6.0"
 bevy_mod_raycast = "0.1.0"
 bevy_skybox = "0.3.0"
 bevy-inspector-egui = "0.3.0"
-glam = "0.13.0"
+
+hex_shader = { path = "./hex_shader" }
 
 
 # always build spirv-builder with optimizaitons, so that the resulting shader compiler is nice and fast to run. 

@@ -3,8 +3,10 @@ mod components;
 mod gameplay_systems;
 mod gameplay_helpers;
 mod orbit_camera;
+mod wrapped_shader_functions;
 use orbit_camera::*;
 use components::*;
+use wrapped_shader_functions::*;
 
 // External
 use bevy::prelude::*;
@@ -50,6 +52,7 @@ fn main() {
 struct MyMaterial {
     pub color: Color,
     pub highlighted_id: Vec2,
+    pub selected_id: Vec2,
     pub background_texture: Handle<Texture>,
 }
 impl Default for MyMaterial {
@@ -57,6 +60,7 @@ impl Default for MyMaterial {
         Self { 
             color: Color::WHITE, 
             highlighted_id: Vec2::new(5.0, 5.0),
+            selected_id: Vec2::new(10.0, 10.0),
             background_texture: Default::default(),
         }
     }
@@ -144,6 +148,7 @@ fn update_hex_selection(
         &Handle<Mesh>,
         &GlobalTransform,
     )>,
+    mouse_button_input: Res<Input<MouseButton>>,
     meshes: Res<Assets<Mesh>>,
     mut my_materials: ResMut<Assets<MyMaterial>>,
 ) {
@@ -186,11 +191,16 @@ fn update_hex_selection(
                         let uv_v0 = Vec2::from(uvs[triangle_indices[0] as usize]);
                         let uv_v1 = Vec2::from(uvs[triangle_indices[1] as usize]);
                         let uv_v2 = Vec2::from(uvs[triangle_indices[2] as usize]);
-
-                        let interpolated_uv = uv_v0 * u + uv_v1 * v + uv_v2 * w;
+  
+                        let mut interpolated_uv = uv_v0 * u + uv_v1 * v + uv_v2 * w;
+                        interpolated_uv *= 5.0;
 
                         if let Some(material) = my_materials.get_mut(material_handle) {
-                            material.highlighted_id = interpolated_uv;
+                            let hex_id = interpolated_uv - hex_relative_uv(interpolated_uv);
+                            material.highlighted_id = hex_id;
+                            if mouse_button_input.just_pressed(MouseButton::Left) {
+                                material.selected_id = hex_id;
+                            }
                         }
                     }
                 }
@@ -268,8 +278,9 @@ fn setup(
 
     // Create a new custom material
     let my_material = my_materials.add(MyMaterial{ 
-        color: Color::SEA_GREEN, 
-        highlighted_id: Vec2::new(5.0, 5.0), 
+        color: Color::WHITE, 
+        highlighted_id: Vec2::new(5.0, 5.0),
+        selected_id: Vec2::new(10.0, 10.0), 
         background_texture: background_handle,   
     });
 
