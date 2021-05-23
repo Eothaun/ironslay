@@ -19,7 +19,7 @@ use bevy::render::{
     renderer::RenderResources,
     shader::{ShaderSource, ShaderStage, ShaderStages},
 };
-use bevy_mod_raycast::*;
+use bevy_mod_raycast::{DefaultRaycastingPlugin, Intersection, RayCastMesh, RayCastMethod, RayCastSource, RaycastSystem};
 use bevy_skybox::{SkyboxCamera, SkyboxPlugin};
 
 use std::env;
@@ -31,13 +31,10 @@ fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .add_plugin(OrbitCameraPlugin)
+        .add_plugin(DefaultRaycastingPlugin::<HexRaycastLayer>::default())
         .add_system_to_stage(
-            stage::POST_UPDATE,
-            update_raycast::<HexRaycastLayer>.system(),
-        )
-        .add_system_to_stage(
-            stage::POST_UPDATE,
-            update_debug_cursor::<HexRaycastLayer>.system(),
+            CoreStage::PostUpdate,
+            update_raycast_with_cursor.system().before(RaycastSystem::BuildRays),
         )
         .add_asset::<MyMaterial>()
         .add_system(update_hex_selection.system())
@@ -74,7 +71,7 @@ layout(location = 1) in vec2 Vertex_Uv;
 
 layout(location = 0) out vec2 v_Uv;
 
-layout(set = 0, binding = 0) uniform Camera {
+layout(set = 0, binding = 0) uniform CameraViewProj {
     mat4 ViewProj;
 };
 layout(set = 1, binding = 0) uniform Transform {
@@ -113,7 +110,7 @@ fn calculate_vertex_indices_from_intersection(
         _ => panic!("Mesh is expected to have float3 positions!"),
     };
 
-    let tri = intersection.world_triangle();
+    let tri = intersection.world_triangle().unwrap();
 
     let tri_idx_v0 = positions
         .iter()
@@ -154,7 +151,7 @@ fn update_hex_selection(
 ) {
     for raycast_source in raycast_source_query.iter() {
         if let Some((entity, intersection)) = raycast_source.intersect_top() {
-            let tri = intersection.world_triangle();
+            let tri = intersection.world_triangle().unwrap();
             let pos = intersection.position();
 
             // From https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
@@ -209,8 +206,20 @@ fn update_hex_selection(
     }
 }
 
+fn update_raycast_with_cursor(
+    mut cursor: EventReader<CursorMoved>,
+    mut query: Query<&mut HexRaycastSource>,
+) {
+    for mut pick_source in &mut query.iter_mut() {
+        // Grab the most recent cursor event if it exists:
+        if let Some(cursor_latest) = cursor.iter().last() {
+            pick_source.cast_method = RayCastMethod::Screenspace(cursor_latest.position);
+        }
+    }
+}
+
 fn setup(
-    commands: &mut Commands,
+    mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut pipelines: ResMut<Assets<PipelineDescriptor>>,
     mut shaders: ResMut<Assets<Shader>>,
@@ -257,23 +266,25 @@ fn setup(
 
     // this material renders the texture normally
     let material_handle = materials.add(StandardMaterial {
-        albedo_texture: Some(texture_handle.clone()),
-        shaded: false,
+        base_color_texture: Some(texture_handle.clone()),
+        unlit: true,
         ..Default::default()
     });
 
     // this material modulates the texture to make it red (and slightly transparent)
     let red_material_handle = materials.add(StandardMaterial {
-        albedo: Color::rgba(1.0, 0.0, 0.0, 0.5),
-        albedo_texture: Some(texture_handle.clone()),
-        shaded: false,
+        base_color: Color::rgba(1.0, 0.0, 0.0, 0.5),
+        base_color_texture: Some(texture_handle.clone()),
+        unlit: true,
+        ..Default::default()
     });
 
     // and lets make this one blue! (and also slightly transparent)
     let blue_material_handle = materials.add(StandardMaterial {
-        albedo: Color::rgba(0.0, 0.0, 1.0, 0.5),
-        albedo_texture: Some(texture_handle),
-        shaded: false,
+        base_color: Color::rgba(0.0, 0.0, 1.0, 0.5),
+        base_color_texture: Some(texture_handle),
+        unlit: true,
+        ..Default::default()
     });
 
     // Create a new custom material
@@ -285,9 +296,8 @@ fn setup(
     });
 
     // add entities to the world
-    commands
-        // textured quad - normal
-        .spawn(PbrBundle {
+    // textured quad - normal
+    commands.spawn_bundle(PbrBundle {
             mesh: quad_handle.clone(),
             material: material_handle,
             transform: Transform {
@@ -300,9 +310,9 @@ fn setup(
                 ..Default::default()
             },
             ..Default::default()
-        })
-        // textured quad - modulated
-        .spawn(PbrBundle {
+        });
+    // textured quad - modulated
+    commands.spawn_bundle(PbrBundle {
             mesh: quad_handle.clone(),
             material: red_material_handle,
             transform: Transform {
@@ -315,9 +325,9 @@ fn setup(
                 ..Default::default()
             },
             ..Default::default()
-        })
+        });
         // textured quad - modulated
-        .spawn(PbrBundle {
+    commands.spawn_bundle(PbrBundle {
             mesh: quad_handle,
             material: blue_material_handle,
             transform: Transform {
@@ -330,9 +340,9 @@ fn setup(
                 ..Default::default()
             },
             ..Default::default()
-        })
+        });
         // plane with custom shader
-        .spawn(MeshBundle {
+    commands.spawn_bundle(MeshBundle {
             mesh: meshes.add(Mesh::from(shape::Plane { size: 2.0 })),
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 pipeline_handle.clone(),
@@ -340,10 +350,10 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, -1.0, 0.0)),
             ..Default::default()
         })
-        .with(my_material.clone())
-        .with(RayCastMesh::<HexRaycastLayer>::default())
+        .insert(my_material.clone())
+        .insert(RayCastMesh::<HexRaycastLayer>::default());
         // custom mesh
-        .spawn(MeshBundle {
+    commands.spawn_bundle(MeshBundle {
             mesh: hexagon_cap,
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 pipeline_handle,
@@ -351,23 +361,20 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(my_material)
-        .with(RayCastMesh::<HexRaycastLayer>::default())
+        .insert(my_material)
+        .insert(RayCastMesh::<HexRaycastLayer>::default());
         // light
-        .spawn(LightBundle {
+    commands.spawn_bundle(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
             ..Default::default()
-        })
+        });
         // camera
-        .spawn(Camera3dBundle {
+    commands.spawn_bundle(PerspectiveCameraBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 1.0, 8.0))
-                .looking_at(Vec3::default(), Vec3::unit_y()),
+                .looking_at(Vec3::default(), Vec3::Y),
             ..Default::default()
         })
-        .with(OrbitCamera::default())
-        .with(SkyboxCamera)
-        .with(OrbitCamera::default())
-        .with(RayCastSource::<HexRaycastLayer>::new(
-            RayCastMethod::CameraCursor(UpdateOn::EveryFrame(Vec2::zero()), EventReader::default()),
-        ));
+        .insert(OrbitCamera::default())
+        .insert(SkyboxCamera)
+        .insert(RayCastSource::<HexRaycastLayer>::new());
 }

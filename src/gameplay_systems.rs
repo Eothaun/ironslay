@@ -21,7 +21,7 @@ pub fn update_mouse_hovering_and_selected(
 }
 
 fn move_player_unit(
-    mut commands: &mut Commands,
+    mut commands: Commands,
     mut selected_query: Query<(Entity, &mut GridPosition), (With<SelectedTag>, With<MoveableTag>, Without<MovedTag>)>,
     hover_query: Query<&GridPosition, (With<HoverTag>,)>,
     mouse_button_input: Res<Input<MouseButton>>,
@@ -37,6 +37,6 @@ fn move_player_unit(
 
     if mouse_button_input.just_pressed(MouseButton::Left) {
         selected_pos.position = hover_pos.position;
-        commands.insert_one(entity, MovedTag);
+        commands.entity(entity).insert(MovedTag);
     }
 }

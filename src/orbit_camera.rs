@@ -8,8 +8,6 @@ const LINE_TO_PIXEL_RATIO: f32 = 0.1;
 
 
 struct CameraState {
-    motion: EventReader<MouseMotion>,
-    scroll: EventReader<MouseWheel>,
     min: f32,
     max: f32,
     zoom_max: f32,
@@ -19,8 +17,6 @@ struct CameraState {
 impl Default for CameraState {
     fn default() -> Self {
         CameraState{
-            motion: Default::default(),
-            scroll: Default::default(),
             min: 3.0,
             max: 0.5,
             zoom_min: 5.0,
@@ -46,7 +42,7 @@ impl Default for OrbitCamera {
             x: 0.0,
             y: 0.0,
             distance: 5.0,
-            center: Vec3::zero(),
+            center: Vec3::ZERO,
             rotate_sensitivity: 1.0,
             zoom_sensitivity: 0.8,
         }
@@ -72,12 +68,12 @@ impl OrbitCameraPlugin {
     fn mouse_motion_system(
         time: Res<Time>,
         mut state: ResMut<CameraState>,
-        mouse_motion_events: Res<Events<MouseMotion>>,
+        mut mouse_motion_event_reader: EventReader<MouseMotion>,
         mouse_button_input: Res<Input<MouseButton>>,
         mut query: Query<(&mut OrbitCamera, &mut Transform, &mut Camera)>,
     ) {
-        let mut delta = Vec2::zero();
-        for event in state.motion.iter(&mouse_motion_events) {
+        let mut delta = Vec2::ZERO;
+        for event in mouse_motion_event_reader.iter() {
             delta += event.delta;
         }
         for (mut camera, mut transform, _) in query.iter_mut() {
@@ -98,11 +94,11 @@ impl OrbitCameraPlugin {
 
     fn zoom_system(
         mut state: ResMut<CameraState>,
-        mouse_wheel_events: Res<Events<MouseWheel>>,
+        mut mouse_wheel_event_reader: EventReader<MouseWheel>,
         mut query: Query<(&mut OrbitCamera, &mut Transform, &mut Camera)>,
     ) {
         let mut total = 0.0;
-        for event in state.scroll.iter(&mouse_wheel_events) {
+        for event in mouse_wheel_event_reader.iter() {
             total += event.y
                 * match event.unit {
                     Line => 1.0,
@@ -123,7 +119,7 @@ impl Plugin for OrbitCameraPlugin {
         app.init_resource::<CameraState>()
             .add_system(Self::mouse_motion_system.system())
             .add_system(Self::zoom_system.system())
-            .add_startup_system_to_stage(bevy::app::startup_stage::POST_STARTUP,self::initial_camera_position.system());
+            .add_startup_system_to_stage(bevy::app::StartupStage::PostStartup, self::initial_camera_position.system());
     }
 
 }
