@@ -24,7 +24,6 @@ pub fn hex_dist(p: BevyVec2) -> f32
 
 pub fn hex_relative_uv(uv: BevyVec2) -> BevyVec2
 {
-
     let shader_gv = hex_shader::hex_relative_uv(convert::bevy_to_shader_vec2(uv));
     convert::shader_to_bevy_vec2(shader_gv)
 }
