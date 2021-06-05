@@ -24,8 +24,13 @@ pub struct HexGrid {
     pub cells: Vec<Entity>,
 }
 
-pub struct Money {
+pub struct Resource {
     pub amount: i32,
+}
+
+#[derive(Clone, Default, PartialEq, Eq, Hash, Debug)]
+pub struct GameState {
+    pub turn: i32,
 }
 
 // tags
@@ -64,10 +69,4 @@ impl HexGrid {
     pub fn index_to_coord(&self, index: usize) -> IVec2 {
         IVec2::new(index as i32 % self.height, index as i32 / self.height)
     }
-}
-
-pub mod ui {
-    pub struct Units;
-    pub struct Turn;
-    pub struct Resources;
 }

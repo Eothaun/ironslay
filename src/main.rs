@@ -5,11 +5,11 @@ mod gameplay_systems;
 mod math_helpers;
 mod orbit_camera;
 mod rendering;
-mod ui_systems;
 mod wrapped_shader_functions;
 use components::*;
 use orbit_camera::*;
 use rendering::components::*;
+mod ui;
 
 // External
 use bevy::ecs::schedule::ReportExecutionOrderAmbiguities;
@@ -54,10 +54,9 @@ fn main() {
         .add_startup_system(setup.system().label("main_init"))
         .add_system(gameplay_systems::update_hex_selection.system())
         .add_system(gameplay_helpers::update_grid_ids.system())
-        .add_system(ui_systems::update_units.system())
-        .add_system(ui_systems::update_resources.system())
-        .add_system(ui_systems::update_turns.system())
+        .add_state(GameState::default())
         //.add_system(gameplay_helpers::debug_print_grid.system())
+        .add_plugin(ui::UIPlugins)
         .run();
 }
 
@@ -68,7 +67,6 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut my_materials: ResMut<Assets<MyMaterial>>,
-    mut ui_materials: ResMut<Assets<ColorMaterial>>,
 ) {
     // load a texture and retrieve its aspect ratio
     let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
@@ -214,111 +212,4 @@ fn setup(
         .insert(OrbitCamera::default())
         .insert(SkyboxCamera)
         .insert(HexRaycastSource::new());
-
-    // ui camera
-    commands.spawn_bundle(UiCameraBundle::default());
-    commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                justify_content: JustifyContent::SpaceBetween,
-                ..Default::default()
-            },
-            material: ui_materials.add(Color::NONE.into()),
-            ..Default::default()
-        })
-        .with_children(|parent| {
-            // left vertical fill (content)
-            parent
-                .spawn_bundle(NodeBundle {
-                    style: Style {
-                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                        align_items: AlignItems::FlexEnd,
-                        ..Default::default()
-                    },
-                    material: ui_materials.add(Color::NONE.into()),
-                    ..Default::default()
-                })
-                .with_children(|parent| {
-                    // text
-                    parent
-                        .spawn_bundle(TextBundle {
-                            style: Style {
-                                margin: Rect::all(Val::Px(5.0)),
-                                ..Default::default()
-                            },
-                            text: Text::with_section(
-                                "Turn",
-                                TextStyle {
-                                    font: asset_server.load("fonts/Satisfy-Regular.ttf"),
-                                    font_size: 30.0,
-                                    color: Color::WHITE,
-                                },
-                                Default::default(),
-                            ),
-                            ..Default::default()
-                        })
-                        .insert(components::ui::Turn);
-                });
-            parent
-                .spawn_bundle(NodeBundle {
-                    style: Style {
-                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                        align_items: AlignItems::FlexEnd,
-                        ..Default::default()
-                    },
-                    material: ui_materials.add(Color::NONE.into()),
-                    ..Default::default()
-                })
-                .with_children(|parent| {
-                    parent
-                        .spawn_bundle(TextBundle {
-                            style: Style {
-                                margin: Rect::all(Val::Px(5.0)),
-                                ..Default::default()
-                            },
-                            text: Text::with_section(
-                                "Resources",
-                                TextStyle {
-                                    font: asset_server.load("fonts/Satisfy-Regular.ttf"),
-                                    font_size: 30.0,
-                                    color: Color::WHITE,
-                                },
-                                Default::default(),
-                            ),
-                            ..Default::default()
-                        })
-                        .insert(components::ui::Resources);
-                });
-            parent
-                .spawn_bundle(NodeBundle {
-                    style: Style {
-                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                        align_items: AlignItems::FlexEnd,
-                        ..Default::default()
-                    },
-                    material: ui_materials.add(Color::NONE.into()),
-                    ..Default::default()
-                })
-                .with_children(|parent| {
-                    parent
-                        .spawn_bundle(TextBundle {
-                            style: Style {
-                                margin: Rect::all(Val::Px(5.0)),
-                                ..Default::default()
-                            },
-                            text: Text::with_section(
-                                "Units",
-                                TextStyle {
-                                    font: asset_server.load("fonts/Satisfy-Regular.ttf"),
-                                    font_size: 30.0,
-                                    color: Color::WHITE,
-                                },
-                                Default::default(),
-                            ),
-                            ..Default::default()
-                        })
-                        .insert(components::ui::Units);
-                });
-        });
 }
