@@ -1,24 +1,25 @@
 // Internal
 mod components;
-mod gameplay_systems;
-mod rendering;
 mod gameplay_helpers;
-mod orbit_camera;
-mod wrapped_shader_functions;
+mod gameplay_systems;
 mod math_helpers;
-use orbit_camera::*;
+mod orbit_camera;
+mod rendering;
+mod ui_systems;
+mod wrapped_shader_functions;
 use components::*;
+use orbit_camera::*;
 use rendering::components::*;
 
 // External
+use bevy::ecs::schedule::ReportExecutionOrderAmbiguities;
+use bevy::math::IVec2;
 use bevy::prelude::*;
 use bevy::render::{
     mesh::shape,
     pipeline::{PipelineDescriptor, RenderPipeline},
-    render_graph::{RenderGraph}
+    render_graph::RenderGraph,
 };
-use bevy::ecs::schedule::ReportExecutionOrderAmbiguities;
-use bevy::math::IVec2;
 use bevy_mod_raycast::{DefaultRaycastingPlugin, RayCastMesh, RaycastSystem};
 use bevy_skybox::{SkyboxCamera, SkyboxPlugin};
 
@@ -40,10 +41,12 @@ fn main() {
         .add_plugin(DefaultRaycastingPlugin::<HexRaycastLayer>::default())
         .add_plugin(SkyboxPlugin::from_image_file("sky1.png"))
         // add this resource to your App to enable ambiguity detection
-        .insert_resource(ReportExecutionOrderAmbiguities)
+        //.insert_resource(ReportExecutionOrderAmbiguities)
         .add_system_to_stage(
             CoreStage::PostUpdate,
-            gameplay_systems::update_raycast_with_cursor.system().before(RaycastSystem::BuildRays),
+            gameplay_systems::update_raycast_with_cursor
+                .system()
+                .before(RaycastSystem::BuildRays),
         )
         .add_asset::<MyMaterial>()
         .insert_resource(IronSlayGlobalResources::default())
@@ -51,6 +54,9 @@ fn main() {
         .add_startup_system(setup.system().label("main_init"))
         .add_system(gameplay_systems::update_hex_selection.system())
         .add_system(gameplay_helpers::update_grid_ids.system())
+        .add_system(ui_systems::update_units.system())
+        .add_system(ui_systems::update_resources.system())
+        .add_system(ui_systems::update_turns.system())
         //.add_system(gameplay_helpers::debug_print_grid.system())
         .run();
 }
@@ -62,6 +68,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut my_materials: ResMut<Assets<MyMaterial>>,
+    mut ui_materials: ResMut<Assets<ColorMaterial>>,
 ) {
     // load a texture and retrieve its aspect ratio
     let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
@@ -102,11 +109,11 @@ fn setup(
     });
 
     // Create a new custom material
-    let my_material = my_materials.add(MyMaterial{ 
-        color: Color::WHITE, 
+    let my_material = my_materials.add(MyMaterial {
+        color: Color::WHITE,
         highlighted_id: Vec2::new(5.0, 5.0),
-        selected_id: Vec2::new(10.0, 10.0), 
-        background_texture: background_handle,   
+        selected_id: Vec2::new(10.0, 10.0),
+        background_texture: background_handle,
     });
 
     commands.insert_resource(HexGrid::new(8, 8));
@@ -114,51 +121,52 @@ fn setup(
     // add entities to the world
     // textured quad - normal
     commands.spawn_bundle(PbrBundle {
-            mesh: quad_handle.clone(),
-            material: material_handle,
-            transform: Transform {
-                translation: Vec3::new(-8.0, 0.0, 1.5),
-                rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
-                ..Default::default()
-            },
-            visible: Visible {
-                is_transparent: true,
-                ..Default::default()
-            },
+        mesh: quad_handle.clone(),
+        material: material_handle,
+        transform: Transform {
+            translation: Vec3::new(-8.0, 0.0, 1.5),
+            rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
             ..Default::default()
-        });
+        },
+        visible: Visible {
+            is_transparent: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    });
     // textured quad - modulated
     commands.spawn_bundle(PbrBundle {
-            mesh: quad_handle.clone(),
-            material: red_material_handle,
-            transform: Transform {
-                translation: Vec3::new(-8.0, 0.0, 0.0),
-                rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
-                ..Default::default()
-            },
-            visible: Visible {
-                is_transparent: true,
-                ..Default::default()
-            },
+        mesh: quad_handle.clone(),
+        material: red_material_handle,
+        transform: Transform {
+            translation: Vec3::new(-8.0, 0.0, 0.0),
+            rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
             ..Default::default()
-        });
-        // textured quad - modulated
+        },
+        visible: Visible {
+            is_transparent: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+    // textured quad - modulated
     commands.spawn_bundle(PbrBundle {
-            mesh: quad_handle,
-            material: blue_material_handle,
-            transform: Transform {
-                translation: Vec3::new(-8.0, 0.0, -1.5),
-                rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
-                ..Default::default()
-            },
-            visible: Visible {
-                is_transparent: true,
-                ..Default::default()
-            },
+        mesh: quad_handle,
+        material: blue_material_handle,
+        transform: Transform {
+            translation: Vec3::new(-8.0, 0.0, -1.5),
+            rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
             ..Default::default()
-        });
-        // plane with custom shader
-    commands.spawn_bundle(MeshBundle {
+        },
+        visible: Visible {
+            is_transparent: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    });
+    // plane with custom shader
+    commands
+        .spawn_bundle(MeshBundle {
             mesh: meshes.add(Mesh::from(shape::Plane { size: 2.0 })),
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 ironslay_resources.hex_render_pipeline.clone(),
@@ -168,8 +176,9 @@ fn setup(
         })
         .insert(my_material.clone())
         .insert(RayCastMesh::<HexRaycastLayer>::default());
-        // custom mesh
-    commands.spawn_bundle(MeshBundle {
+    // custom mesh
+    commands
+        .spawn_bundle(MeshBundle {
             mesh: hexagon_cap,
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 ironslay_resources.hex_render_pipeline.clone(),
@@ -179,21 +188,25 @@ fn setup(
         })
         .insert(my_material)
         .insert(HexRaycastTarget::default())
+        // Hex spawning...
         .with_children(|parent| {
             for y in 0..8 {
                 for x in 0..8 {
-                    parent.spawn().insert(GridPosition{position: IVec2::new(x, y)});
+                    parent.spawn().insert(GridPosition {
+                        position: IVec2::new(x, y),
+                    });
                 }
             }
         });
-        
-        // light
+
+    // light
     commands.spawn_bundle(LightBundle {
-            transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
-            ..Default::default()
-        });
-        // camera
-    commands.spawn_bundle(PerspectiveCameraBundle {
+        transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
+        ..Default::default()
+    });
+    // camera
+    commands
+        .spawn_bundle(PerspectiveCameraBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 1.0, 8.0))
                 .looking_at(Vec3::default(), Vec3::Y),
             ..Default::default()
@@ -201,4 +214,111 @@ fn setup(
         .insert(OrbitCamera::default())
         .insert(SkyboxCamera)
         .insert(HexRaycastSource::new());
+
+    // ui camera
+    commands.spawn_bundle(UiCameraBundle::default());
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                justify_content: JustifyContent::SpaceBetween,
+                ..Default::default()
+            },
+            material: ui_materials.add(Color::NONE.into()),
+            ..Default::default()
+        })
+        .with_children(|parent| {
+            // left vertical fill (content)
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                        align_items: AlignItems::FlexEnd,
+                        ..Default::default()
+                    },
+                    material: ui_materials.add(Color::NONE.into()),
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    // text
+                    parent
+                        .spawn_bundle(TextBundle {
+                            style: Style {
+                                margin: Rect::all(Val::Px(5.0)),
+                                ..Default::default()
+                            },
+                            text: Text::with_section(
+                                "Turn",
+                                TextStyle {
+                                    font: asset_server.load("fonts/Satisfy-Regular.ttf"),
+                                    font_size: 30.0,
+                                    color: Color::WHITE,
+                                },
+                                Default::default(),
+                            ),
+                            ..Default::default()
+                        })
+                        .insert(components::ui::Turn);
+                });
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                        align_items: AlignItems::FlexEnd,
+                        ..Default::default()
+                    },
+                    material: ui_materials.add(Color::NONE.into()),
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    parent
+                        .spawn_bundle(TextBundle {
+                            style: Style {
+                                margin: Rect::all(Val::Px(5.0)),
+                                ..Default::default()
+                            },
+                            text: Text::with_section(
+                                "Resources",
+                                TextStyle {
+                                    font: asset_server.load("fonts/Satisfy-Regular.ttf"),
+                                    font_size: 30.0,
+                                    color: Color::WHITE,
+                                },
+                                Default::default(),
+                            ),
+                            ..Default::default()
+                        })
+                        .insert(components::ui::Resources);
+                });
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                        align_items: AlignItems::FlexEnd,
+                        ..Default::default()
+                    },
+                    material: ui_materials.add(Color::NONE.into()),
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    parent
+                        .spawn_bundle(TextBundle {
+                            style: Style {
+                                margin: Rect::all(Val::Px(5.0)),
+                                ..Default::default()
+                            },
+                            text: Text::with_section(
+                                "Units",
+                                TextStyle {
+                                    font: asset_server.load("fonts/Satisfy-Regular.ttf"),
+                                    font_size: 30.0,
+                                    color: Color::WHITE,
+                                },
+                                Default::default(),
+                            ),
+                            ..Default::default()
+                        })
+                        .insert(components::ui::Units);
+                });
+        });
 }

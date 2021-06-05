@@ -7,7 +7,6 @@
 // HACK(eddyb) can't easily see warnings otherwise from `spirv-builder` builds.
 // Uncomment the line below to always see warnings in the console
 // #![deny(warnings)]
-
 #![allow(unused_imports)]
 
 #[cfg(not(target_arch = "spirv"))]
@@ -16,23 +15,21 @@ pub extern crate spirv_std_macros;
 
 use core::f32;
 
-use spirv_std::glam::{ vec2, vec3, vec4 };
-use spirv_std::storage_class::{ Input, Output, Uniform };
+use spirv_std::glam::{vec2, vec3, vec4};
 use spirv_std::num_traits::Float;
-use spirv_std::{ Sampler, Image2d };
+use spirv_std::storage_class::{Input, Output, Uniform};
+use spirv_std::{Image2d, Sampler};
 
 pub use spirv_std::glam::{Vec2, Vec3, Vec4};
 
 #[spirv(block)]
 #[repr(C)]
-pub struct MyMaterial_color
-{
-    color: Vec4
+pub struct MyMaterial_color {
+    color: Vec4,
 }
 #[spirv(block)]
 #[repr(C)]
-pub struct MyMaterial_highlighted_id
-{
+pub struct MyMaterial_highlighted_id {
     highlighted_id: Vec2,
     // Shader compiler shares struct definitions with the same internal types, so we have to add dummy fields to let the types differ...
     _dummy: f32,
@@ -40,8 +37,7 @@ pub struct MyMaterial_highlighted_id
 
 #[spirv(block)]
 #[repr(C)]
-pub struct MyMaterial_selected_id
-{
+pub struct MyMaterial_selected_id {
     selected_id: Vec2,
     // Shader compiler shares struct definitions with the same internal types, so we have to add dummy fields to let the types differ...
     _dummy: Vec2,
@@ -75,13 +71,11 @@ pub fn lerp_clamped(x: f32, min: f32, max: f32) -> f32 {
     min + (max - min) * x_clamped
 }
 
-pub fn vec2_mod(a: Vec2, b: Vec2) -> Vec2
-{
+pub fn vec2_mod(a: Vec2, b: Vec2) -> Vec2 {
     vec2(a.x % b.x, a.y % b.y)
 }
 
-pub fn hex_dist(mut p: Vec2) -> f32
-{
+pub fn hex_dist(mut p: Vec2) -> f32 {
     p = p.abs();
 
     let mut c = p.dot(vec2(1.0, 1.73).normalize());
@@ -90,13 +84,12 @@ pub fn hex_dist(mut p: Vec2) -> f32
     return c;
 }
 
-pub fn hex_relative_uv(uv: Vec2) -> Vec2
-{
+pub fn hex_relative_uv(uv: Vec2) -> Vec2 {
     let r = vec2(1.0, 1.73);
     let h = r * 0.5;
 
     let a = vec2_mod(uv, r) - h;
-    let b = vec2_mod(uv+h, r) - h;
+    let b = vec2_mod(uv + h, r) - h;
 
     if a.length() < b.length() {
         a
@@ -105,20 +98,25 @@ pub fn hex_relative_uv(uv: Vec2) -> Vec2
     }
 }
 
-
-fn selection_color() -> Vec3 { Vec3::new(1.0, 1.0, 0.0) }
+fn selection_color() -> Vec3 {
+    Vec3::new(1.0, 1.0, 0.0)
+}
 
 #[spirv(fragment)]
 pub fn main(
     uv_input: Input<Vec2>,
-    
+
     #[spirv(descriptor_set = 2, binding = 0)] color_uniform: Uniform<MyMaterial_color>,
     #[spirv(descriptor_set = 2, binding = 1)] highlight_uniform: Uniform<MyMaterial_highlighted_id>,
     #[spirv(descriptor_set = 2, binding = 2)] selection_uniform: Uniform<MyMaterial_selected_id>,
-    #[spirv(descriptor_set = 2, binding = 3)] MyMaterial_background_texture: Uniform<Image2d>,
-    #[spirv(descriptor_set = 2, binding = 4)] MyMaterial_background_texture_sampler: Uniform<Sampler>,
 
-    mut colour_output: Output<Vec4>
+    /*
+       #[spirv(descriptor_set = 2, binding = 3)] my_material_background_texture: Uniform<Image2d>,
+       #[spirv(descriptor_set = 2, binding = 4)] my_material_background_texture_sampler: Uniform<
+           Sampler,
+       >,
+    */
+    mut colour_output: Output<Vec4>,
 ) {
     let mut uv: Vec2 = *uv_input;
     uv *= 5.0;
@@ -128,16 +126,22 @@ pub fn main(
     let id = uv - gv;
 
     let mut col = Vec3::one();
-  
-    let target_id_in_fragment = Vec2::from(highlight_uniform.highlighted_id).distance_squared(id) < 0.1;
+
+    let target_id_in_fragment =
+        Vec2::from(highlight_uniform.highlighted_id).distance_squared(id) < 0.1;
     col *= Vec3::splat(lerp(target_id_in_fragment as i32 as f32, 0.4, 1.0));
 
-    let selected_id_in_fragment = Vec2::from(selection_uniform.selected_id).distance_squared(id) < 0.1;
+    let selected_id_in_fragment =
+        Vec2::from(selection_uniform.selected_id).distance_squared(id) < 0.1;
     col *= Vec3::one().lerp(selection_color(), selected_id_in_fragment as i32 as f32);
 
     let fragment_in_border = hex_dist < 0.04;
     col += Vec3::splat(fragment_in_border as i32 as f32);
 
-    let diffuse_texture_color = MyMaterial_background_texture.sample(*MyMaterial_background_texture_sampler, *uv_input);
-    *colour_output = diffuse_texture_color * col.extend(1.0) * color_uniform.color;
+    /*
+    let diffuse_texture_color =
+        my_material_background_texture.sample(*my_material_background_texture_sampler, *uv_input);
+    *colour_output = diffuse_texture_color;
+    */
+    *colour_output = col.extend(1.0) * color_uniform.color;
 }

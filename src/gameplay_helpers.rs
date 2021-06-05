@@ -1,7 +1,8 @@
 use crate::components::*;
 use bevy::prelude::*;
 
-pub fn update_grid_ids(mut hex_grid: ResMut<HexGrid>, 
+pub fn update_grid_ids(
+    mut hex_grid: ResMut<HexGrid>,
     added_cells: Query<(Entity, &GridPosition), Added<GridPosition>>,
     changed_cells: Query<(Entity, &GridPosition), Changed<GridPosition>>,
     removed_cells: RemovedComponents<GridPosition>,
@@ -28,12 +29,6 @@ pub fn debug_print_grid(hex_grid: Res<HexGrid>) {
         }
         println!("");
     }
- 
-    println!("----DONE---------------------------------");
-}
 
-pub fn generate_grid<GridIter>(grid_positions: &GridIter) -> Vec<bool> 
-    where GridIter: IntoIterator<Item=GridPosition>
-{
-    Vec::new()
+    println!("----DONE---------------------------------");
 }
