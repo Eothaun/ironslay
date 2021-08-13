@@ -5,13 +5,13 @@ use bevy::render::renderer::RenderResources;
 // Custom material for our custom shader
 #[derive(RenderResources, TypeUuid)]
 #[uuid = "1e08866c-0b8a-437e-8bce-37733b25127e"]
-pub struct MyMaterial {
+pub struct HexMaterial {
     pub color: Color,
     pub highlighted_id: Vec2,
     pub selected_id: Vec2,
     pub background_texture: Handle<Texture>,
 }
-impl Default for MyMaterial {
+impl Default for HexMaterial {
     fn default() -> Self {
         Self { 
             color: Color::WHITE, 

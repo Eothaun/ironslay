@@ -48,7 +48,7 @@ fn main() {
                 .system()
                 .before(RaycastSystem::BuildRays),
         )
-        .add_asset::<MyMaterial>()
+        .add_asset::<HexMaterial>()
         .insert_resource(IronSlayGlobalResources::default())
         .add_startup_system(rendering::systems::setup.system().before("main_init"))
         .add_startup_system(setup.system().label("main_init"))
@@ -66,7 +66,7 @@ fn setup(
     ironslay_resources: Res<IronSlayGlobalResources>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut my_materials: ResMut<Assets<MyMaterial>>,
+    mut my_materials: ResMut<Assets<HexMaterial>>,
 ) {
     // load a texture and retrieve its aspect ratio
     let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
@@ -107,7 +107,7 @@ fn setup(
     });
 
     // Create a new custom material
-    let my_material = my_materials.add(MyMaterial {
+    let my_material = my_materials.add(HexMaterial {
         color: Color::WHITE,
         highlighted_id: Vec2::new(5.0, 5.0),
         selected_id: Vec2::new(10.0, 10.0),

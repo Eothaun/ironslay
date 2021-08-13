@@ -22,13 +22,13 @@ pub fn update_hex_selection(
     raycast_source_query: Query<&RayCastSource<HexRaycastLayer>>,
     raycast_mesh_query: Query<(
         &HexRaycastTarget,
-        &Handle<MyMaterial>,
+        &Handle<HexMaterial>,
         &Handle<Mesh>,
         &GlobalTransform,
     )>,
     mouse_button_input: Res<Input<MouseButton>>,
     meshes: Res<Assets<Mesh>>,
-    mut my_materials: ResMut<Assets<MyMaterial>>,
+    mut my_materials: ResMut<Assets<HexMaterial>>,
 ) {
     for raycast_source in raycast_source_query.iter() {
         if let Some((entity, intersection)) = raycast_source.intersect_top() {

@@ -1,8 +1,12 @@
-use bevy::math::Vec3;
+use bevy::math::{Vec2, Vec3};
 
 
 pub fn vec3_all_eq(a: Vec3, b: Vec3, epsilon: f32) -> bool {
     (a.x - b.x).abs() <= epsilon && (a.y - b.y).abs() <= epsilon && (a.z - b.z).abs() <= epsilon
+}
+
+pub fn vec2_mod(a: Vec2, b: Vec2) -> Vec2 {
+    Vec2::new(a.x % b.x, a.y % b.y)
 }
 
 // From https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates

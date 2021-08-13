@@ -36,31 +36,35 @@ layout(location = 0) out vec4 o_Target;
     vec4 color;
 };*/
 void main() {
-    o_Target = vec4(0.0, 1.0, 0.0, 1.0);
+    o_Target = vec4(0.0, 0.0, 1.0, 1.0);
 }
 "#;
 
 
 pub fn setup(
     mut ironslay_resources: ResMut<IronSlayGlobalResources>,
+    asset_server: ResMut<AssetServer>,
     mut pipelines: ResMut<Assets<PipelineDescriptor>>,
     mut shaders: ResMut<Assets<Shader>>,
     mut render_graph: ResMut<RenderGraph>,
 ) {
+    asset_server.watch_for_changes().unwrap();
+
     // Create a new shader pipeline
-    let hex_shader_spriv = include_bytes!(env!("hex_shader.spv"));
+    //let hex_shader_spriv = include_bytes!(env!("hex_shader.spv"));
     let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, VERTEX_SHADER)),
-        fragment: Some(shaders.add(Shader::new(
-            ShaderStage::Fragment,
-            ShaderSource::spirv_from_bytes(hex_shader_spriv),
-        ))),
+        fragment: Some(asset_server.load::<Shader, _>("glsl_shaders/hex_shader.frag"))
+        // fragment: Some(shaders.add(Shader::new(
+        //     ShaderStage::Fragment,
+        //     ShaderSource::spirv_from_bytes(hex_shader_spriv),
+        // ))),
     }));
 
     // Add an AssetRenderResourcesNode to our Render Graph. This will bind MyMaterial resources to our shader
     render_graph.add_system_node(
         "my_material",
-        AssetRenderResourcesNode::<MyMaterial>::new(true),
+        AssetRenderResourcesNode::<HexMaterial>::new(true),
     );
 
     // Add a Render Graph edge connecting our new "my_material" node to the main pass node. This ensures "my_material" runs before the main pass

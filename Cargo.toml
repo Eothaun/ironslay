@@ -12,14 +12,14 @@ bevy_mod_raycast = "0.2.2"
 bevy_skybox = "0.4.0"
 bevy-inspector-egui = "0.5"
 
-hex_shader = { path = "./hex_shader" }
+# hex_shader = { path = "./hex_shader" }
 
 
-# always build spirv-builder with optimizaitons, so that the resulting shader compiler is nice and fast to run. 
-[profile.dev.build-override]
-opt-level = 3
-[profile.release.build-override]
-opt-level = 3
+# # always build spirv-builder with optimizaitons, so that the resulting shader compiler is nice and fast to run. 
+# [profile.dev.build-override]
+# opt-level = 3
+# [profile.release.build-override]
+# opt-level = 3
 
-[build-dependencies]
-spirv-builder = { git = "https://github.com/EmbarkStudios/rust-gpu.git", tag = "v0.3.0" }
+# [build-dependencies]
+# spirv-builder = { git = "https://github.com/EmbarkStudios/rust-gpu.git", tag = "v0.3.0" }
