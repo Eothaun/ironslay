@@ -1,8 +1,10 @@
 #version 450
 
-// Input Attributes
+// Attributes
+// ============================================================================
+// Input
 layout(location = 0) in vec2 i_Uv;
-// Output Attributes
+// Output 
 layout(location = 0) out vec4 o_Target;
 
 // Uniforms
@@ -15,6 +17,12 @@ layout(set = 2, binding = 1) uniform HexMaterial_highlighted_id {
 layout(set = 2, binding = 2) uniform HexMaterial_selected_id {
     vec2 selected_id;
 };
+layout(set = 2, binding = 3) uniform texture2D HexMaterial_background_texture;
+layout(set = 2, binding = 4) uniform sampler HexMaterial_background_texture_sampler;
+layout(set = 2, binding = 5) uniform utexture2D HexMaterial_map_state;
+layout(set = 2, binding = 6) uniform sampler HexMaterial_map_state_sampler;
+// ============================================================================
+
 
 // Hex functions
 float hex_dist(vec2 p) {
@@ -40,6 +48,7 @@ vec2 hex_relative_uv(vec2 uv) {
     }
 }
 
+
 // Fragment shader
 void main() {
     vec2 uv = i_Uv * 5.0;
@@ -54,10 +63,19 @@ void main() {
     col *= mix(0.4, 1.0, float(target_id_in_fragment));
 
     bool selected_id_in_fragment = distance(id, selected_id) < 0.1;
-    col *= mix(vec3(1.0), vec3(1.0, 1.0, 0.0), float(selected_id_in_fragment));
+    col *= mix(vec3(1.0), vec3(1.0, 1.0, 0.2), float(selected_id_in_fragment));
 
     bool fragment_in_border = hex_dist < 0.04;
     col += vec3(float(fragment_in_border));
 
-    o_Target = vec4(col, color.a);
+    col *= texture(sampler2D(HexMaterial_background_texture, HexMaterial_background_texture_sampler), i_Uv).xyz;
+
+    // TODO FIX: I think the `id` variable doesn't line up with the pixel coords here
+    uint map_data = texelFetch(usampler2D(HexMaterial_map_state, HexMaterial_map_state_sampler), ivec2(id), 0).r;
+    if(map_data == 0)
+        col *= vec3(0.0, 1.0, 0.0);
+    else if(map_data == 1)
+        col *= vec3(0.0, 0.0, 1.0);
+
+    o_Target = vec4(col.rgb, color.a);
 }

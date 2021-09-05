@@ -10,6 +10,7 @@ pub struct HexMaterial {
     pub highlighted_id: Vec2,
     pub selected_id: Vec2,
     pub background_texture: Handle<Texture>,
+    pub map_state: Handle<Texture>
 }
 impl Default for HexMaterial {
     fn default() -> Self {
@@ -18,6 +19,7 @@ impl Default for HexMaterial {
             highlighted_id: Vec2::new(5.0, 5.0),
             selected_id: Vec2::new(10.0, 10.0),
             background_texture: Default::default(),
+            map_state: Default::default(),
         }
     }
 }

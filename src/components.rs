@@ -1,9 +1,14 @@
 use bevy::ecs::entity::Entity;
-use bevy::prelude::IVec2;
+use bevy::math::IVec2;
 
 // components
 pub struct GridPosition {
     pub position: IVec2,
+}
+
+pub enum TerrainType {
+    Land,
+    Water
 }
 
 pub struct Team {

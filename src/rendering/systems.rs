@@ -1,3 +1,4 @@
+use bevy::core::FromBytes;
 use bevy::prelude::*;
 use bevy::render::{
     render_graph::{RenderGraph, base, AssetRenderResourcesNode},
@@ -63,14 +64,37 @@ pub fn setup(
 
     // Add an AssetRenderResourcesNode to our Render Graph. This will bind MyMaterial resources to our shader
     render_graph.add_system_node(
-        "my_material",
+        "hex_material",
         AssetRenderResourcesNode::<HexMaterial>::new(true),
     );
 
     // Add a Render Graph edge connecting our new "my_material" node to the main pass node. This ensures "my_material" runs before the main pass
     render_graph
-        .add_node_edge("my_material", base::node::MAIN_PASS)
+        .add_node_edge("hex_material", base::node::MAIN_PASS)
         .unwrap();
     
     ironslay_resources.hex_render_pipeline = pipeline_handle;
+}
+
+pub fn update_map_texture(grid_positions: Query<(&GridPosition, &TerrainType)>,
+    hex_grid: Res<HexGrid>,
+    mut textures: ResMut<Assets<Texture>>,
+    hex_materials: Res<Assets<HexMaterial>>,
+) {
+    // TODO: Assumption that there is only 1 planet & hex_material
+    let hex_material_handle = hex_materials.ids().next().expect("An already created HexMaterial should have been created at init");
+    let hex_material = hex_materials.get(hex_material_handle).unwrap();
+
+    let texture = textures.get_mut(&hex_material.map_state).unwrap();
+    assert!(texture.size.width as i32 == hex_grid.width && texture.size.height as i32 == hex_grid.height, 
+        "The texture size differs from the grid size, did it just get resized?");
+    
+    let mut map_buffer: Vec<u32> = vec![0; (hex_grid.width * hex_grid.height) as usize];
+    for (coord, terrain_type) in grid_positions.iter() {
+        map_buffer[hex_grid.coord_to_index(coord.position)] = match terrain_type {
+            TerrainType::Land => 0,
+            TerrainType::Water => 1,
+        };
+    }
+    texture.data = Vec::from_bytes(bytemuck::cast_slice(map_buffer.as_slice()));
 }

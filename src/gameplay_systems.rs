@@ -8,17 +8,8 @@ use bevy::render::mesh::VertexAttributeValues;
 use bevy_mod_raycast::RayCastMethod;
 use bevy_mod_raycast::RayCastSource;
 
-fn update_gpu_buffer() {}
 
 pub fn update_mouse_hovering_and_selected(
-    raycast_source_query: Query<&HexRaycastSource>,
-    raycast_mesh_query: Query<(&HexRaycastTarget, &Handle<Mesh>, &GlobalTransform)>,
-    grid_query: Query<&GridPosition>,
-    meshes: Res<Assets<Mesh>>,
-) {
-}
-
-pub fn update_hex_selection(
     raycast_source_query: Query<&RayCastSource<HexRaycastLayer>>,
     raycast_mesh_query: Query<(
         &HexRaycastTarget,
@@ -54,7 +45,7 @@ pub fn update_hex_selection(
                         let pos = intersection.position();
                         let barycentric_coords =
                             math_helpers::calculate_barycentric_coords(tri.v0, tri.v1, tri.v2, pos);
-                        let mut interpolated_uv = uv_v0 * barycentric_coords.x
+                        let mut interpolated_uv: Vec2 = uv_v0 * barycentric_coords.x
                             + uv_v1 * barycentric_coords.y
                             + uv_v2 * barycentric_coords.z;
                         // Temp thing in the shader, to get more hexes on the mesh
