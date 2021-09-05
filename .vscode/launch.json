@@ -18,7 +18,10 @@
                     "value": "1"
                 }
             ],
-            "console": "externalTerminal"
+            "console": "externalTerminal",
+            "env": {
+                "CARGO_MANIFEST_DIR": "${workspaceFolder}"
+            }
         }
     ]
 }
