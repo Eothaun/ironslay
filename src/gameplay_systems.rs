@@ -54,9 +54,12 @@ pub fn update_mouse_hovering_and_selected(
                         if let Some(material) = my_materials.get_mut(material_handle) {
                             let hex_id = interpolated_uv
                                 - wrapped_shader_functions::hex_relative_uv(interpolated_uv);
-                            material.highlighted_id = hex_id;
+                            let hex_coord = wrapped_shader_functions::hex_grid_coord(hex_id);
+
+                            // TODO: This should probably set some world state. And then we should translate it into the material 
+                            material.highlighted_coord = hex_coord;
                             if mouse_button_input.just_pressed(MouseButton::Left) {
-                                material.selected_id = hex_id;
+                                material.selected_coord = hex_coord;
                             }
                         }
                     }

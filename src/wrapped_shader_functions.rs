@@ -3,6 +3,7 @@
 use bevy;
 
 pub type BevyVec2 = bevy::math::Vec2;
+pub type BevyIVec2 = bevy::math::IVec2;
 // pub type ShaderVec2 = hex_shader::Vec2;
 
 // pub mod convert {
@@ -43,17 +44,25 @@ mod hex_shader_copy_pasted {
             b
         }
     }
+
+    pub fn hex_grid_coord(id: Vec2) -> Vec2 {
+        let r = Vec2::new(1.0, 1.73);
+        let h = r * 0.5;
+        (id / h)//.as_i32()
+    }
 }
 
-pub fn hex_dist(p: BevyVec2) -> f32
-{
+pub fn hex_dist(p: BevyVec2) -> f32 {
     //hex_shader::hex_dist(convert::bevy_to_shader_vec2(p))
     hex_shader_copy_pasted::hex_dist(p)
 }
 
-pub fn hex_relative_uv(uv: BevyVec2) -> BevyVec2
-{
+pub fn hex_relative_uv(uv: BevyVec2) -> BevyVec2 {
     //let shader_gv = hex_shader::hex_relative_uv(convert::bevy_to_shader_vec2(uv));
     //convert::shader_to_bevy_vec2(shader_gv)
     hex_shader_copy_pasted::hex_relative_uv(uv)
+}
+
+pub fn hex_grid_coord(id: BevyVec2) -> BevyVec2 {
+    hex_shader_copy_pasted::hex_grid_coord(id)
 }

@@ -101,8 +101,8 @@ fn setup(
     // Create a new custom material
     let hex_material = hex_materials.add(HexMaterial {
         color: Color::WHITE,
-        highlighted_id: Vec2::new(5.0, 5.0),
-        selected_id: Vec2::new(10.0, 10.0),
+        highlighted_coord: Vec2::new(5.0, 5.0),
+        selected_coord: Vec2::new(10.0, 10.0),
         background_texture: background_handle,
         map_state: textures.add(map_texture)
     });
