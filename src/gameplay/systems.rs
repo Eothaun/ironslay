@@ -18,6 +18,7 @@ pub fn update_mouse_hovering_and_selected(
     )>,
     mouse_button_input: Res<Input<MouseButton>>,
     meshes: Res<Assets<Mesh>>,
+    mut current_selection: ResMut<Selection>,
     mut my_materials: ResMut<Assets<HexMaterial>>,
 ) {
     for raycast_source in raycast_source_query.iter() {
@@ -59,11 +60,41 @@ pub fn update_mouse_hovering_and_selected(
                             material.highlighted_coord = hex_coord;
                             if mouse_button_input.just_pressed(MouseButton::Left) {
                                 material.selected_coord = hex_coord;
+                                current_selection.coords = IVec2::new(
+                                    hex_coord.x.round().trunc() as i32,
+                                    hex_coord.y.round().trunc() as i32,
+                                );
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+pub fn deselection_system(
+    mut commands: Commands,
+    mut positions: Query<(Entity, &mut GridPosition), With<SelectedTag>>,
+    current_selection: Res<Selection>,
+    grid: Res<HexGrid>,
+) {
+    for (entity, pos) in positions.iter_mut() {
+        if grid.coord_to_index(pos.position) != grid.coord_to_index(current_selection.coords) {
+            commands.entity(entity).remove::<SelectedTag>();
+        }
+    }
+}
+
+pub fn selection_system(
+    mut commands: Commands,
+    mut positions: Query<(Entity, &mut GridPosition), Without<SelectedTag>>,
+    current_selection: Res<Selection>,
+    grid: Res<HexGrid>,
+) {
+    for (entity, pos) in positions.iter_mut() {
+        if grid.coord_to_index(pos.position) == grid.coord_to_index(current_selection.coords) {
+            commands.entity(entity).insert(SelectedTag);
         }
     }
 }

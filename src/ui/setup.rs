@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use super::components::*;
+use super::components::*;
 use super::types::*;
 pub fn setup(
     mut commands: Commands,
@@ -112,6 +113,37 @@ pub fn setup(
                             ..Default::default()
                         })
                         .insert(Units);
+                });
+            // Selected
+            parent
+                .spawn_bundle(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                        align_items: AlignItems::FlexEnd,
+                        ..Default::default()
+                    },
+                    material: ui_materials.add(Color::NONE.into()),
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    parent
+                        .spawn_bundle(TextBundle {
+                            style: Style {
+                                margin: Rect::all(Val::Px(5.0)),
+                                ..Default::default()
+                            },
+                            text: Text::with_section(
+                                "Tile",
+                                TextStyle {
+                                    font: asset_server.load("fonts/Satisfy-Regular.ttf"),
+                                    font_size: 30.0,
+                                    color: Color::WHITE,
+                                },
+                                Default::default(),
+                            ),
+                            ..Default::default()
+                        })
+                        .insert(Tile);
                 });
         });
     // ui camera

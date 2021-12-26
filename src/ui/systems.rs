@@ -24,6 +24,23 @@ pub fn update_turns(state: Res<State<GameState>>, mut turns: Query<&mut Text, Wi
     }
 }
 
+pub fn update_tile(
+    mut tiles: Query<&mut Text, With<Tile>>,
+    terrain: Query<&TerrainType, With<SelectedTag>>,
+) {
+    for mut tile in tiles.iter_mut() {
+        for mut section in tile.sections.iter_mut() {
+            for t in terrain.iter() {
+                if *t == TerrainType::Land {
+                    section.value = format!("Lang");
+                } else {
+                    section.value = format!("Water");
+                }
+            }
+        }
+    }
+}
+
 pub fn button_system(
     button_materials: Res<ButtonMaterials>,
     mut state: ResMut<State<GameState>>,

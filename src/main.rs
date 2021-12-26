@@ -107,6 +107,7 @@ fn setup(
     });
 
     commands.insert_resource(gameplay::components::HexGrid::new(8, 8));
+    commands.insert_resource(gameplay::components::Selection::default());
 
     // add entities to the world
     // textured quad - modulated
@@ -149,19 +150,24 @@ fn setup(
         .insert(hex_material)
         .insert(gameplay::components::HexRaycastTarget::default())
         // Hex spawning...
+        .insert(gameplay::components::Planet { number: 0 })
         .with_children(|parent| {
             for y in 0..8 {
                 for x in 0..8 {
-                    parent
-                        .spawn()
+                    let terrain = if x < 3 || y < 3 {
+                        gameplay::components::TerrainType::Water
+                    } else {
+                        gameplay::components::TerrainType::Land
+                    };
+                    let mut e = parent.spawn();
+                    e.insert(gameplay::components::Team { number: 0 })
                         .insert(gameplay::components::GridPosition {
                             position: IVec2::new(x, y),
                         })
-                        .insert(if x < 3 || y < 3 {
-                            gameplay::components::TerrainType::Water
-                        } else {
-                            gameplay::components::TerrainType::Land
-                        });
+                        .insert(terrain);
+                    if terrain == gameplay::components::TerrainType::Land {
+                        e.insert(gameplay::components::SelectableTag);
+                    }
                 }
             }
         });

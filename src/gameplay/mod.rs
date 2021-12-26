@@ -17,7 +17,16 @@ impl Plugin for GamePlayPlugins {
                 .before(RaycastSystem::BuildRays),
         )
         .add_system(systems::update_mouse_hovering_and_selected.system())
-        .add_system(helpers::update_grid_ids.system())
+        .add_system(
+            systems::deselection_system
+                .system()
+                .label("deselection_system"),
+        )
+        .add_system(
+            systems::selection_system
+                .system()
+                .after("deselection_system"),
+        )
         .add_state(components::GameState::default());
     }
 }
