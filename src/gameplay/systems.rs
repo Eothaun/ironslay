@@ -1,4 +1,4 @@
-use crate::components::*;
+use super::components::*;
 use crate::math_helpers;
 use crate::rendering;
 use crate::rendering::components::*;
@@ -7,7 +7,6 @@ use bevy::prelude::*;
 use bevy::render::mesh::VertexAttributeValues;
 use bevy_mod_raycast::RayCastMethod;
 use bevy_mod_raycast::RayCastSource;
-
 
 pub fn update_mouse_hovering_and_selected(
     raycast_source_query: Query<&RayCastSource<HexRaycastLayer>>,
@@ -56,7 +55,7 @@ pub fn update_mouse_hovering_and_selected(
                                 - wrapped_shader_functions::hex_relative_uv(interpolated_uv);
                             let hex_coord = wrapped_shader_functions::hex_grid_coord(hex_id);
 
-                            // TODO: This should probably set some world state. And then we should translate it into the material 
+                            // TODO: This should probably set some world state. And then we should translate it into the material
                             material.highlighted_coord = hex_coord;
                             if mouse_button_input.just_pressed(MouseButton::Left) {
                                 material.selected_coord = hex_coord;
@@ -77,29 +76,5 @@ pub fn update_raycast_with_cursor(
         if let Some(cursor_latest) = cursor.iter().last() {
             pick_source.cast_method = RayCastMethod::Screenspace(cursor_latest.position);
         }
-    }
-}
-
-fn move_player_unit(
-    mut commands: Commands,
-    mut selected_query: Query<
-        (Entity, &mut GridPosition),
-        (With<SelectedTag>, With<MoveableTag>, Without<MovedTag>),
-    >,
-    hover_query: Query<&GridPosition, (With<HoverTag>,)>,
-    mouse_button_input: Res<Input<MouseButton>>,
-) {
-    let (entity, mut selected_pos) = match selected_query.iter_mut().next() {
-        Some(pos) => pos,
-        None => return,
-    };
-    let hover_pos = match hover_query.iter().next() {
-        Some(pos) => pos,
-        None => return,
-    };
-
-    if mouse_button_input.just_pressed(MouseButton::Left) {
-        selected_pos.position = hover_pos.position;
-        commands.entity(entity).insert(MovedTag);
     }
 }

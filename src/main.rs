@@ -1,26 +1,23 @@
 // Internal
-mod components;
-mod gameplay_helpers;
-mod gameplay_systems;
+mod gameplay;
 mod math_helpers;
 mod orbit_camera;
 mod rendering;
+mod ui;
 mod wrapped_shader_functions;
-use components::*;
+
 use orbit_camera::*;
 use rendering::components::*;
-mod ui;
 
 // External
-use bevy::ecs::schedule::ReportExecutionOrderAmbiguities;
 use bevy::math::IVec2;
 use bevy::prelude::*;
 use bevy::render::{
     mesh::shape,
     pipeline::{PipelineDescriptor, RenderPipeline},
-    texture::{Extent3d, TextureFormat, TextureDimension, FilterMode},
+    texture::{Extent3d, FilterMode, TextureDimension, TextureFormat},
 };
-use bevy_mod_raycast::{DefaultRaycastingPlugin, RayCastMesh, RaycastSystem};
+use bevy_mod_raycast::{DefaultRaycastingPlugin, RayCastMesh};
 use bevy_skybox::{SkyboxCamera, SkyboxPlugin};
 
 use bytemuck;
@@ -40,23 +37,21 @@ fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .add_plugin(OrbitCameraPlugin)
-        .add_plugin(DefaultRaycastingPlugin::<HexRaycastLayer>::default())
+        .add_plugin(DefaultRaycastingPlugin::<
+            gameplay::components::HexRaycastLayer,
+        >::default())
         .add_plugin(SkyboxPlugin::from_image_file("sky1.png"))
         // add this resource to your App to enable ambiguity detection
         //.insert_resource(ReportExecutionOrderAmbiguities)
+        .add_plugin(gameplay::GamePlayPlugins)
         .add_system_to_stage(
             CoreStage::PostUpdate,
-            gameplay_systems::update_raycast_with_cursor.system().before(RaycastSystem::BuildRays),
+            rendering::systems::update_map_texture.system(),
         )
         .add_asset::<HexMaterial>()
         .insert_resource(IronSlayGlobalResources::default())
         .add_startup_system(rendering::systems::setup.system().before("main_init"))
         .add_startup_system(setup.system().label("main_init"))
-        .add_system(gameplay_systems::update_mouse_hovering_and_selected.system())
-        .add_system(gameplay_helpers::update_grid_ids.system())
-        .add_system_to_stage(CoreStage::PostUpdate, rendering::systems::update_map_texture.system())
-        .add_state(GameState::default())
-        //.add_system(gameplay_helpers::debug_print_grid.system())
         .add_plugin(ui::UIPlugins)
         .run();
 }
@@ -73,10 +68,14 @@ fn setup(
     // load a texture and retrieve its aspect ratio
     let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
     let background_handle = asset_server.load("textures/paper_tileable.jpg");
-    
-    let map_data_vec: Vec<u32> = vec![0; 8*8];
-    let mut map_texture = Texture::new_fill(Extent3d::new(8, 8, 1), TextureDimension::D2, 
-    bytemuck::cast_slice(map_data_vec.as_slice()), TextureFormat::R32Uint);
+
+    let map_data_vec: Vec<u32> = vec![0; 8 * 8];
+    let mut map_texture = Texture::new_fill(
+        Extent3d::new(8, 8, 1),
+        TextureDimension::D2,
+        bytemuck::cast_slice(map_data_vec.as_slice()),
+        TextureFormat::R32Uint,
+    );
     map_texture.sampler.min_filter = FilterMode::Nearest;
     map_texture.sampler.mag_filter = FilterMode::Nearest;
 
@@ -104,10 +103,10 @@ fn setup(
         highlighted_coord: Vec2::new(5.0, 5.0),
         selected_coord: Vec2::new(10.0, 10.0),
         background_texture: background_handle,
-        map_state: textures.add(map_texture)
+        map_state: textures.add(map_texture),
     });
 
-    commands.insert_resource(HexGrid::new(8, 8));
+    commands.insert_resource(gameplay::components::HexGrid::new(8, 8));
 
     // add entities to the world
     // textured quad - modulated
@@ -136,7 +135,7 @@ fn setup(
             ..Default::default()
         })
         .insert(hex_material.clone())
-        .insert(RayCastMesh::<HexRaycastLayer>::default());
+        .insert(RayCastMesh::<gameplay::components::HexRaycastLayer>::default());
     // planet mesh with hex shader
     commands
         .spawn_bundle(MeshBundle {
@@ -148,14 +147,21 @@ fn setup(
             ..Default::default()
         })
         .insert(hex_material)
-        .insert(HexRaycastTarget::default())
+        .insert(gameplay::components::HexRaycastTarget::default())
         // Hex spawning...
         .with_children(|parent| {
             for y in 0..8 {
                 for x in 0..8 {
-                    parent.spawn()
-                        .insert(GridPosition { position: IVec2::new(x, y), })
-                        .insert(if x < 3 || y < 3 { TerrainType::Water } else { TerrainType::Land });
+                    parent
+                        .spawn()
+                        .insert(gameplay::components::GridPosition {
+                            position: IVec2::new(x, y),
+                        })
+                        .insert(if x < 3 || y < 3 {
+                            gameplay::components::TerrainType::Water
+                        } else {
+                            gameplay::components::TerrainType::Land
+                        });
                 }
             }
         });
@@ -173,5 +179,5 @@ fn setup(
         })
         .insert(OrbitCamera::default())
         .insert(SkyboxCamera)
-        .insert(HexRaycastSource::new());
+        .insert(gameplay::components::HexRaycastSource::new());
 }

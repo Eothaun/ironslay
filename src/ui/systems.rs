@@ -2,7 +2,7 @@ use super::components::*;
 use super::types::*;
 use bevy::prelude::*;
 
-use crate::components::*;
+use crate::gameplay::components::*;
 
 pub fn update_units(mut units: Query<&mut Text, With<Units>>) {
     for mut unit in units.iter_mut() {
@@ -39,7 +39,7 @@ pub fn button_system(
             Interaction::Clicked => {
                 *material = button_materials.pressed.clone();
                 let turn = state.current().turn;
-                state.set(GameState { turn: turn + 1 });
+                state.set(GameState { turn: turn + 1 }).unwrap();
             }
             Interaction::Hovered => {
                 *material = button_materials.hovered.clone();

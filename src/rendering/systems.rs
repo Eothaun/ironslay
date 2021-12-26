@@ -1,14 +1,13 @@
+use super::components::*;
+use crate::gameplay::components::*;
+use crate::IronSlayGlobalResources;
 use bevy::core::FromBytes;
 use bevy::prelude::*;
 use bevy::render::{
-    render_graph::{RenderGraph, base, AssetRenderResourcesNode},
-    shader::{ShaderSource, ShaderStage, ShaderStages},
     pipeline::PipelineDescriptor,
+    render_graph::{base, AssetRenderResourcesNode, RenderGraph},
+    shader::{ShaderSource, ShaderStage, ShaderStages},
 };
-use crate::IronSlayGlobalResources;
-use crate::components::*;
-use super::components::*;
-
 
 const VERTEX_SHADER: &str = r#"
 #version 450
@@ -41,7 +40,6 @@ void main() {
 }
 "#;
 
-
 pub fn setup(
     mut ironslay_resources: ResMut<IronSlayGlobalResources>,
     asset_server: ResMut<AssetServer>,
@@ -72,23 +70,30 @@ pub fn setup(
     render_graph
         .add_node_edge("hex_material", base::node::MAIN_PASS)
         .unwrap();
-    
+
     ironslay_resources.hex_render_pipeline = pipeline_handle;
 }
 
-pub fn update_map_texture(grid_positions: Query<(&GridPosition, &TerrainType)>,
+pub fn update_map_texture(
+    grid_positions: Query<(&GridPosition, &TerrainType)>,
     hex_grid: Res<HexGrid>,
     mut textures: ResMut<Assets<Texture>>,
     hex_materials: Res<Assets<HexMaterial>>,
 ) {
     // TODO: Assumption that there is only 1 planet & hex_material
-    let hex_material_handle = hex_materials.ids().next().expect("An already created HexMaterial should have been created at init");
+    let hex_material_handle = hex_materials
+        .ids()
+        .next()
+        .expect("An already created HexMaterial should have been created at init");
     let hex_material = hex_materials.get(hex_material_handle).unwrap();
 
     let texture = textures.get_mut(&hex_material.map_state).unwrap();
-    assert!(texture.size.width as i32 == hex_grid.width && texture.size.height as i32 == hex_grid.height, 
-        "The texture size differs from the grid size, did it just get resized?");
-    
+    assert!(
+        texture.size.width as i32 == hex_grid.width
+            && texture.size.height as i32 == hex_grid.height,
+        "The texture size differs from the grid size, did it just get resized?"
+    );
+
     let mut map_buffer: Vec<u32> = vec![0; (hex_grid.width * hex_grid.height) as usize];
     for (coord, terrain_type) in grid_positions.iter() {
         map_buffer[hex_grid.coord_to_index(coord.position)] = match terrain_type {

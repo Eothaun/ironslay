@@ -1,4 +1,4 @@
-use crate::components::*;
+use super::components::*;
 use bevy::prelude::*;
 
 pub fn update_grid_ids(
